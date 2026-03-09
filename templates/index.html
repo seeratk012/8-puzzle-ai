@@ -66,6 +66,7 @@ gap:22px;
 margin-bottom:45px;
 }
 
+
 .tile{
 height:105px;
 border-radius:18px;
@@ -75,7 +76,12 @@ justify-content:center;
 font-size:28px;
 font-weight:500;
 cursor:pointer;
-transition:all 0.2s ease;
+transition:all 0.25s ease;
+transform:scale(1);
+}
+
+.tile:active{
+transform:scale(0.92);
 }
 
 body.dark .tile{
@@ -160,6 +166,20 @@ body.light .modal-box{
 background:white;
 border:1px solid #d0d9e4;
 }
+.credit{
+text-align:center;
+margin-top:25px;
+font-size:13px;
+opacity:0.7;
+letter-spacing:0.5px;
+}
+.ai-status{
+text-align:center;
+font-size:13px;
+margin-top:-25px;
+margin-bottom:20px;
+opacity:0.7;
+}
 </style>
 </head>
 
@@ -167,6 +187,7 @@ border:1px solid #d0d9e4;
 
 <div class="container">
 <h2>AI Puzzle Lab</h2>
+<div id="aiStatus" class="ai-status"></div>
 
 <div class="stats">
 <div id="timer">⏱ 0s</div>
@@ -195,8 +216,11 @@ border:1px solid #d0d9e4;
 <h3>🎉 Puzzle Completed</h3>
 <p id="modalText"></p>
 <button onclick="closeModal()">Close</button>
+
+<div class="credit">
+A project by <b>Seerat Kaur Kohli</b>
 </div>
-</div>
+
 
 <script>
 let board=[[1,2,3],[4,5,6],[7,8,0]];
@@ -293,6 +317,9 @@ gameActive=false;
 }
 
 async function solve(){
+
+document.getElementById("aiStatus").innerText="🤖 AI is thinking...";
+
 gameActive=false;
 clearInterval(timerInterval);
 let algorithm=document.getElementById("algorithm").value;
@@ -302,7 +329,11 @@ method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({board:board,algorithm:algorithm})
 });
+
 let data=await res.json();
+
+document.getElementById("aiStatus").innerText="";
+
 if(!data.solution_path)return;
 animateSolution(data.solution_path);
 }
