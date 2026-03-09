@@ -207,6 +207,8 @@ opacity:0.7;
 
 <button onclick="shuffleBoard()">Shuffle</button>
 <button onclick="restart()">Restart</button>
+<button onclick="undoMove()">Undo</button>
+<button onclick="hintMove()">Hint</button>
 <button onclick="solve()">AI Solve</button>
 </div>
 </div>
@@ -216,6 +218,8 @@ opacity:0.7;
 <h3>🎉 Puzzle Completed</h3>
 <p id="modalText"></p>
 <button onclick="closeModal()">Close</button>
+</div>
+</div>
 
 <div class="credit">
 A project by <b>Seerat Kaur Kohli</b>
@@ -223,6 +227,7 @@ A project by <b>Seerat Kaur Kohli</b>
 
 
 <script>
+let moveHistory = [];   
 let board=[[1,2,3],[4,5,6],[7,8,0]];
 let initialBoard=JSON.parse(JSON.stringify(board));
 let timerInterval;
@@ -255,17 +260,56 @@ grid.appendChild(tile);
 
 function moveTile(r,c){
 if(!gameActive)return;
+
 let blank=findBlank();
+
 if(Math.abs(blank.row-r)+Math.abs(blank.col-c)===1){
+
+moveHistory.push(JSON.parse(JSON.stringify(board)));
+
 board[blank.row][blank.col]=board[r][c];
 board[r][c]=0;
+
 moveCount++;
 document.getElementById("moves").innerText="🎯 "+moveCount;
+
 render();
 checkWin();
+
 }
+}
+function undoMove(){
+
+if(moveHistory.length===0) return;
+
+board = moveHistory.pop();
+
+moveCount--;
+if(moveCount < 0) moveCount = 0;
+
+document.getElementById("moves").innerText="🎯 "+moveCount;
+
+render();
+
+}
+async function hintMove(){
+
+let algorithm=document.getElementById("algorithm").value;
+
+let res=await fetch("/solve",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({board:board,algorithm:algorithm})
+});
+
+let data=await res.json();
+
+if(data.solution_path.length>0){
+applyMove(data.solution_path[0]);
+render();
 }
 
+}
 function findBlank(){
 for(let i=0;i<3;i++)
 for(let j=0;j<3;j++)
@@ -274,6 +318,7 @@ if(board[i][j]===0)return{row:i,col:j};
 
 function shuffleBoard(){
 gameActive=true;
+moveHistory=[];
 for(let i=0;i<50;i++){
 let blank=findBlank();
 let neighbors=[[blank.row-1,blank.col],[blank.row+1,blank.col],[blank.row,blank.col-1],[blank.row,blank.col+1]]
@@ -291,6 +336,7 @@ render();
 
 function restart(){
 board=JSON.parse(JSON.stringify(initialBoard));
+moveHistory=[];
 moveCount=0;
 seconds=0;
 document.getElementById("moves").innerText="🎯 0";
