@@ -111,13 +111,20 @@ def solve():
     # convert 2D -> tuple
     flat = tuple([num for row in board for num in row])
 
+    import time
+    start = time.time()
+
     if algorithm == "astar":
         solution = astar(flat)
     else:
         solution = bfs(flat)
 
+    end = time.time()
+
     return jsonify({
-        "solution_path": solution
+        "solution_path": solution,
+        "moves": len(solution),
+        "time": round(end - start, 3)
     })
 
 # -------------------------

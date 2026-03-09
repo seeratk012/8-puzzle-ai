@@ -320,6 +320,9 @@ async function solve(){
 
 document.getElementById("aiStatus").innerText="🤖 AI is thinking...";
 
+// allow UI to update
+await new Promise(resolve => setTimeout(resolve, 50));
+
 gameActive=false;
 clearInterval(timerInterval);
 let algorithm=document.getElementById("algorithm").value;
