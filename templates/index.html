@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>AI Puzzle Lab</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+*{box-sizing:border-box;}
+
+body{
+margin:0;
+font-family:'Inter',sans-serif;
+transition:0.3s;
+}
+
+body.dark{
+background:linear-gradient(160deg,#071421,#0d243b 60%, #0a1b2e);
+color:#e8f6ff;
+}
+
+body.light{
+background:linear-gradient(160deg,#eef3f9,#dbe8f5);
+color:#102a43;
+}
+
+.container{
+width:520px;
+max-width:94%;
+margin:90px auto;
+padding:50px;
+border-radius:24px;
+transition:0.3s;
+}
+
+body.dark .container{
+background:rgba(18,32,52,0.95);
+border:1px solid rgba(0,180,255,0.25);
+box-shadow:0 20px 60px rgba(0,0,0,0.6);
+}
+
+body.light .container{
+background:#ffffff;
+border:1px solid #d0d9e4;
+box-shadow:0 20px 60px rgba(0,0,0,0.1);
+}
+
+h2{
+text-align:center;
+margin-bottom:40px;
+font-weight:600;
+}
+
+.stats{
+display:flex;
+justify-content:space-between;
+font-size:14px;
+margin-bottom:35px;
+}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(3,1fr);
+gap:22px;
+margin-bottom:45px;
+}
+
+.tile{
+height:105px;
+border-radius:18px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:28px;
+font-weight:500;
+cursor:pointer;
+transition:all 0.2s ease;
+}
+
+body.dark .tile{
+background:linear-gradient(180deg,#123252,#102944);
+border:1px solid rgba(0,200,255,0.35);
+color:#dff6ff;
+}
+
+body.dark .tile:hover{
+border-color:rgba(0,255,255,0.7);
+box-shadow:0 10px 20px rgba(0,200,255,0.15);
+}
+
+body.light .tile{
+background:#f0f4f9;
+border:1px solid #cbd6e2;
+color:#102a43;
+}
+
+body.light .tile:hover{
+background:#e2ebf5;
+}
+
+.blank{visibility:hidden;}
+
+.controls{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:14px;
+}
+
+button,select{
+padding:10px 22px;
+border-radius:28px;
+font-weight:500;
+cursor:pointer;
+transition:0.2s ease;
+}
+
+body.dark button, body.dark select{
+background:#123252;
+border:1px solid rgba(0,200,255,0.35);
+color:#9feaff;
+}
+
+body.light button, body.light select{
+background:#e7edf4;
+border:1px solid #cbd6e2;
+color:#102a43;
+}
+
+button:hover{
+opacity:0.85;
+}
+
+.modal{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.5);
+display:none;
+align-items:center;
+justify-content:center;
+}
+
+.modal-box{
+padding:35px;
+border-radius:20px;
+width:320px;
+text-align:center;
+}
+
+body.dark .modal-box{
+background:#102844;
+border:1px solid rgba(0,200,255,0.35);
+}
+
+body.light .modal-box{
+background:white;
+border:1px solid #d0d9e4;
+}
+</style>
+</head>
+
+<body class="dark">
+
+<div class="container">
+<h2>AI Puzzle Lab</h2>
+
+<div class="stats">
+<div id="timer">⏱ 0s</div>
+<div id="moves">🎯 0</div>
+<div>
+<button onclick="toggleTheme()">🌙 / ☀️</button>
+</div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="controls">
+<select id="algorithm">
+<option value="astar">A* Search</option>
+<option value="bfs">BFS</option>
+</select>
+
+<button onclick="shuffleBoard()">Shuffle</button>
+<button onclick="restart()">Restart</button>
+<button onclick="solve()">AI Solve</button>
+</div>
+</div>
+
+<div class="modal" id="modal">
+<div class="modal-box">
+<h3>🎉 Puzzle Completed</h3>
+<p id="modalText"></p>
+<button onclick="closeModal()">Close</button>
+</div>
+</div>
+
+<script>
+let board=[[1,2,3],[4,5,6],[7,8,0]];
+let initialBoard=JSON.parse(JSON.stringify(board));
+let timerInterval;
+let seconds=0;
+let moveCount=0;
+let gameActive=false;
+
+function toggleTheme(){
+document.body.classList.toggle("dark");
+document.body.classList.toggle("light");
+}
+
+function render(){
+const grid=document.getElementById("grid");
+grid.innerHTML="";
+for(let i=0;i<3;i++){
+for(let j=0;j<3;j++){
+const tile=document.createElement("div");
+tile.className="tile";
+if(board[i][j]===0){
+tile.classList.add("blank");
+}else{
+tile.innerText=board[i][j];
+tile.onclick=()=>moveTile(i,j);
+}
+grid.appendChild(tile);
+}
+}
+}
+
+function moveTile(r,c){
+if(!gameActive)return;
+let blank=findBlank();
+if(Math.abs(blank.row-r)+Math.abs(blank.col-c)===1){
+board[blank.row][blank.col]=board[r][c];
+board[r][c]=0;
+moveCount++;
+document.getElementById("moves").innerText="🎯 "+moveCount;
+render();
+checkWin();
+}
+}
+
+function findBlank(){
+for(let i=0;i<3;i++)
+for(let j=0;j<3;j++)
+if(board[i][j]===0)return{row:i,col:j};
+}
+
+function shuffleBoard(){
+gameActive=true;
+for(let i=0;i<50;i++){
+let blank=findBlank();
+let neighbors=[[blank.row-1,blank.col],[blank.row+1,blank.col],[blank.row,blank.col-1],[blank.row,blank.col+1]]
+.filter(([r,c])=>r>=0&&r<3&&c>=0&&c<3);
+let rand=neighbors[Math.floor(Math.random()*neighbors.length)];
+board[blank.row][blank.col]=board[rand[0]][rand[1]];
+board[rand[0]][rand[1]]=0;
+}
+initialBoard=JSON.parse(JSON.stringify(board));
+moveCount=0;
+seconds=0;
+startTimer();
+render();
+}
+
+function restart(){
+board=JSON.parse(JSON.stringify(initialBoard));
+moveCount=0;
+seconds=0;
+document.getElementById("moves").innerText="🎯 0";
+document.getElementById("timer").innerText="⏱ 0s";
+startTimer();
+render();
+gameActive=true;
+}
+
+function startTimer(){
+clearInterval(timerInterval);
+timerInterval=setInterval(()=>{
+seconds++;
+document.getElementById("timer").innerText="⏱ "+seconds+"s";
+},1000);
+}
+
+function checkWin(){
+if(board.flat().toString()==="1,2,3,4,5,6,7,8,0"){
+clearInterval(timerInterval);
+showModal("Solved in "+moveCount+" moves");
+gameActive=false;
+}
+}
+
+async function solve(){
+gameActive=false;
+clearInterval(timerInterval);
+let algorithm=document.getElementById("algorithm").value;
+
+let res=await fetch("/solve",{
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body:JSON.stringify({board:board,algorithm:algorithm})
+});
+let data=await res.json();
+if(!data.solution_path)return;
+animateSolution(data.solution_path);
+}
+
+function animateSolution(path){
+let i=0;
+let interval=setInterval(()=>{
+if(i>=path.length){
+clearInterval(interval);
+showModal("AI solved in "+path.length+" moves");
+return;
+}
+applyMove(path[i]);
+render();
+i++;
+},300);
+}
+
+function applyMove(dir){
+dir=dir.toLowerCase();
+let blank=findBlank();
+let r=blank.row,c=blank.col;
+if(dir==="up"&&r>0){board[r][c]=board[r-1][c];board[r-1][c]=0;}
+else if(dir==="down"&&r<2){board[r][c]=board[r+1][c];board[r+1][c]=0;}
+else if(dir==="left"&&c>0){board[r][c]=board[r][c-1];board[r][c-1]=0;}
+else if(dir==="right"&&c<2){board[r][c]=board[r][c+1];board[r][c+1]=0;}
+}
+
+function showModal(text){
+document.getElementById("modalText").innerText=text;
+document.getElementById("modal").style.display="flex";
+}
+function closeModal(){
+document.getElementById("modal").style.display="none";
+}
+
+render();
+</script>
+
+</body>
+</html>
