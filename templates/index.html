@@ -154,6 +154,10 @@ border-radius:20px;
 <div class="grid" id="grid"></div>
 
 <div class="controls">
+<select id="algorithm">
+<option value="astar">A* Search</option>
+<option value="bfs">BFS</option>
+</select>
 
 <select onchange="shuffleBoard(this.value)">
 <option disabled selected>Shuffle Level</option>
@@ -441,13 +445,18 @@ render();
 
 async function hintMove(){
 
+let algorithm=document.getElementById("algorithm").value;
+
 let res=await fetch("/solve",{
 
 method:"POST",
 
 headers:{"Content-Type":"application/json"},
 
-body:JSON.stringify({board:board,algorithm:"astar"})
+body:JSON.stringify({
+board:board,
+algorithm:algorithm
+})
 
 });
 
@@ -467,17 +476,30 @@ render();
 
 async function solve(){
 
+document.getElementById("aiStatus").innerText="🤖 AI is thinking...";
+
+await new Promise(resolve => setTimeout(resolve, 50));
+
+let algorithm=document.getElementById("algorithm").value;
+
 let res=await fetch("/solve",{
 
 method:"POST",
 
 headers:{"Content-Type":"application/json"},
 
-body:JSON.stringify({board:board,algorithm:"astar"})
+body:JSON.stringify({
+board:board,
+algorithm:algorithm
+})
 
 });
 
 let data=await res.json();
+
+document.getElementById("aiStatus").innerText="";
+
+if(!data.solution_path)return;
 
 animateSolution(data.solution_path);
 
