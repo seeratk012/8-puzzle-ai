@@ -408,25 +408,30 @@ function applyMove(dir){
 
 dir = dir.toLowerCase();
 
-let blank=findBlank();
-let r=blank.row;
-let c=blank.col;
+let blank = findBlank();
+let r = blank.row;
+let c = blank.col;
 
-if(dir==="up" && r<2){
-board[r][c]=board[r+1][c];
-board[r+1][c]=0;
+/* reverse direction because solver returns tile move */
+
+if(dir === "up" && r < 2){
+board[r][c] = board[r+1][c];
+board[r+1][c] = 0;
 }
-else if(dir==="down" && r>0){
-board[r][c]=board[r-1][c];
-board[r-1][c]=0;
+
+else if(dir === "down" && r > 0){
+board[r][c] = board[r-1][c];
+board[r-1][c] = 0;
 }
-else if(dir==="left" && c<2){
-board[r][c]=board[r][c+1];
-board[r][c+1]=0;
+
+else if(dir === "left" && c < 2){
+board[r][c] = board[r][c+1];
+board[r][c+1] = 0;
 }
-else if(dir==="right" && c>0){
-board[r][c]=board[r][c-1];
-board[r][c-1]=0;
+
+else if(dir === "right" && c > 0){
+board[r][c] = board[r][c-1];
+board[r][c-1] = 0;
 }
 
 }
