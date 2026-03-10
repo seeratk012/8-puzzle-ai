@@ -4,7 +4,6 @@
 
 <meta charset="UTF-8">
 <title>AI Puzzle Lab</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -29,13 +28,10 @@ background:#102844;
 }
 
 .grid{
-display:grid;
-grid-template-columns:repeat(3,100px);
-grid-template-rows:repeat(3,100px);
-gap:10px;
-justify-content:center;
-margin:40px 0;
 position:relative;
+width:330px;
+height:330px;
+margin:40px auto;
 }
 
 .tile{
@@ -55,8 +51,6 @@ transition:all 0.25s ease;
 .tile:active{
 transform:scale(0.9);
 }
-
-.blank{visibility:hidden;}
 
 .controls{
 display:flex;
@@ -113,6 +107,7 @@ cursor:pointer;
 <option value="medium">Medium</option>
 <option value="hard">Hard</option>
 </select>
+
 <button onclick="restart()">Restart</button>
 <button onclick="undoMove()">Undo</button>
 <button onclick="hintMove()">Hint</button>
@@ -132,6 +127,7 @@ let moveHistory=[]
 let seconds=0
 let moveCount=0
 let timerInterval
+let timerStarted=false
 let gameActive=false
 
 
@@ -157,7 +153,7 @@ for(let j=0;j<3;j++){
 
 let value = board[i][j]
 
-if(value==0) continue
+if(value===0) continue
 
 const tile=document.createElement("div")
 
@@ -197,7 +193,9 @@ let blank=findBlank()
 
 if(Math.abs(blank.row-r)+Math.abs(blank.col-c)==1){
 
-if(moveCount==0)startTimer()
+if(!timerStarted){
+startTimer()
+}
 
 moveHistory.push(JSON.parse(JSON.stringify(board)))
 
@@ -214,6 +212,7 @@ render()
 
 }
 
+
 function restart(){
 
 board = JSON.parse(JSON.stringify(initialBoard))
@@ -222,6 +221,7 @@ moveHistory=[]
 
 moveCount=0
 seconds=0
+timerStarted=false
 
 clearInterval(timerInterval)
 
@@ -231,6 +231,8 @@ document.getElementById("timer").innerText="⏱ 0s"
 render()
 
 }
+
+
 function shuffleBoard(level){
 
 moveHistory=[]
@@ -262,6 +264,12 @@ initialBoard=JSON.parse(JSON.stringify(board))
 
 moveCount=0
 seconds=0
+timerStarted=false
+
+clearInterval(timerInterval)
+
+document.getElementById("moves").innerText=" 🎯 0"
+document.getElementById("timer").innerText="⏱ 0s"
 
 render()
 
@@ -271,6 +279,8 @@ gameActive=true
 
 
 function startTimer(){
+
+timerStarted=true
 
 timerInterval=setInterval(()=>{
 
@@ -289,6 +299,8 @@ if(moveHistory.length==0)return
 board=moveHistory.pop()
 
 moveCount--
+
+document.getElementById("moves").innerText=" 🎯 "+moveCount
 
 render()
 
@@ -316,6 +328,11 @@ document.getElementById("aiStatus").innerText=""
 if(data.solution_path.length>0){
 
 applyMove(data.solution_path[0])
+
+moveCount++
+
+document.getElementById("moves").innerText=" 🎯 "+moveCount
+
 render()
 
 }
@@ -332,18 +349,14 @@ let algorithm=document.getElementById("algorithm").value
 let res=await fetch("/solve",{
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({
-board:board,
-algorithm:algorithm
-})
+body:JSON.stringify({board:board,algorithm:algorithm})
 })
 
 let data=await res.json()
 
-document.getElementById("aiStatus").innerText=""
-
 if(!data.solution_path || data.solution_path.length==0){
 
+document.getElementById("aiStatus").innerText=""
 alert("No solution found")
 return
 
@@ -356,7 +369,9 @@ animateSolution(data.solution_path)
 
 function animateSolution(path){
 
-if(moveCount==0) startTimer()
+if(!timerStarted){
+startTimer()
+}
 
 let i=0
 
@@ -365,9 +380,7 @@ let interval=setInterval(()=>{
 if(i>=path.length){
 
 clearInterval(interval)
-
 document.getElementById("aiStatus").innerText=""
-
 return
 
 }
@@ -385,6 +398,8 @@ i++
 },300)
 
 }
+
+
 function applyMove(dir){
 
 dir=dir.toLowerCase()
