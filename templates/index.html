@@ -205,6 +205,12 @@ opacity:0.7;
 <option value="bfs">BFS</option>
 </select>
 
+<select id="difficulty">
+<option value="easy">Easy</option>
+<option value="medium">Medium</option>
+<option value="hard">Hard</option>
+</select>
+
 <button onclick="shuffleBoard()">Shuffle</button>
 <button onclick="restart()">Restart</button>
 <button onclick="undoMove()">Undo</button>
@@ -234,6 +240,7 @@ let timerInterval;
 let seconds=0;
 let moveCount=0;
 let gameActive=false;
+let timerStarted = false;
 
 function toggleTheme(){
 document.body.classList.toggle("dark");
@@ -273,9 +280,13 @@ board[r][c]=0;
 moveCount++;
 document.getElementById("moves").innerText="🎯 "+moveCount;
 
+if(!timerStarted){
+startTimer();
+timerStarted=true;
+}
+
 render();
 checkWin();
-
 }
 }
 function undoMove(){
@@ -317,20 +328,43 @@ if(board[i][j]===0)return{row:i,col:j};
 }
 
 function shuffleBoard(){
+
+let diff=document.getElementById("difficulty").value;
+
+let moves=20;
+
+if(diff==="easy") moves=15;
+if(diff==="medium") moves=40;
+if(diff==="hard") moves=80;
+
 gameActive=true;
 moveHistory=[];
-for(let i=0;i<50;i++){
+timerStarted=false;
+clearInterval(timerInterval);
+seconds=0;
+document.getElementById("timer").innerText="⏱ 0s";
+
+for(let i=0;i<moves;i++){
+
 let blank=findBlank();
-let neighbors=[[blank.row-1,blank.col],[blank.row+1,blank.col],[blank.row,blank.col-1],[blank.row,blank.col+1]]
-.filter(([r,c])=>r>=0&&r<3&&c>=0&&c<3);
+
+let neighbors=[
+[blank.row-1,blank.col],
+[blank.row+1,blank.col],
+[blank.row,blank.col-1],
+[blank.row,blank.col+1]
+].filter(([r,c])=>r>=0&&r<3&&c>=0&&c<3);
+
 let rand=neighbors[Math.floor(Math.random()*neighbors.length)];
+
 board[blank.row][blank.col]=board[rand[0]][rand[1]];
 board[rand[0]][rand[1]]=0;
 }
+
 initialBoard=JSON.parse(JSON.stringify(board));
 moveCount=0;
-seconds=0;
-startTimer();
+document.getElementById("moves").innerText="🎯 0";
+
 render();
 }
 
@@ -366,11 +400,10 @@ async function solve(){
 
 document.getElementById("aiStatus").innerText="🤖 AI is thinking...";
 
-// allow UI to update
 await new Promise(resolve => setTimeout(resolve, 50));
 
 gameActive=false;
-clearInterval(timerInterval);
+
 let algorithm=document.getElementById("algorithm").value;
 
 let res=await fetch("/solve",{
@@ -384,9 +417,15 @@ let data=await res.json();
 document.getElementById("aiStatus").innerText="";
 
 if(!data.solution_path)return;
-animateSolution(data.solution_path);
+
+// START TIMER WHEN AI MAKES FIRST MOVE
+if(!timerStarted){
+startTimer();
+timerStarted=true;
 }
 
+animateSolution(data.solution_path);
+}
 function animateSolution(path){
 let i=0;
 let interval=setInterval(()=>{
