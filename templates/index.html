@@ -14,7 +14,7 @@ body{
 margin:0;
 font-family:'Inter',sans-serif;
 background:linear-gradient(160deg,#071421,#0d243b 60%, #0a1b2e);
-color:white;
+color:#e8f6ff;
 text-align:center;
 }
 
@@ -22,11 +22,12 @@ text-align:center;
 width:520px;
 max-width:94%;
 margin:80px auto;
-padding:40px;
-border-radius:20px;
-background:#102844;
+padding:45px;
+border-radius:24px;
+background:rgba(18,32,52,0.95);
+border:1px solid rgba(0,180,255,0.25);
+box-shadow:0 20px 60px rgba(0,0,0,0.6);
 }
-
 .grid{
 position:relative;
 width:330px;
@@ -41,11 +42,18 @@ height:100px;
 display:flex;
 align-items:center;
 justify-content:center;
-font-size:28px;
-background:#123252;
-border-radius:12px;
+font-size:30px;
+font-weight:500;
+background:linear-gradient(180deg,#123252,#102944);
+border-radius:18px;
 cursor:pointer;
+border:1px solid rgba(0,200,255,0.35);
 transition:all 0.25s ease;
+}
+
+.tile:hover{
+border-color:rgba(0,255,255,0.7);
+box-shadow:0 10px 20px rgba(0,200,255,0.15);
 }
 
 .tile:active{
@@ -59,13 +67,33 @@ gap:10px;
 justify-content:center;
 }
 
-button,select{
-padding:10px 20px;
-border-radius:20px;
-border:none;
+.tile{
+position:absolute;
+width:100px;
+height:100px;
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:30px;
+font-weight:500;
+background:linear-gradient(180deg,#123252,#102944);
+border-radius:18px;
 cursor:pointer;
+border:1px solid rgba(0,200,255,0.35);
+transition:all 0.25s ease;
 }
 
+.tile:hover{
+border-color:rgba(0,255,255,0.7);
+box-shadow:0 10px 20px rgba(0,200,255,0.15);
+}
+#aiStatus{
+margin-top:5px;
+margin-bottom:10px;
+font-size:14px;
+opacity:0.8;
+color:#9feaff;
+}
 </style>
 
 </head>
@@ -75,6 +103,7 @@ cursor:pointer;
 <div id="startScreen" class="container">
 
 <h2>AI Puzzle Lab</h2>
+<div id="aiStatus"></div>
 
 <button onclick="startGame()">Start Game</button>
 
@@ -402,16 +431,33 @@ i++
 
 function applyMove(dir){
 
-dir=dir.toLowerCase()
+dir = dir.toLowerCase()
 
-let blank=findBlank()
-let r=blank.row
-let c=blank.col
+let blank = findBlank()
+let r = blank.row
+let c = blank.col
 
-if(dir=="up"&&r<2){board[r][c]=board[r+1][c];board[r+1][c]=0}
-else if(dir=="down"&&r>0){board[r][c]=board[r-1][c];board[r-1][c]=0}
-else if(dir=="left"&&c<2){board[r][c]=board[r][c+1];board[r][c+1]=0}
-else if(dir=="right"&&c>0){board[r][c]=board[r][c-1];board[r][c-1]=0}
+// reverse direction (solver moves tile, we move blank)
+
+if(dir==="up" && r<2){
+board[r][c] = board[r+1][c]
+board[r+1][c] = 0
+}
+
+else if(dir==="down" && r>0){
+board[r][c] = board[r-1][c]
+board[r-1][c] = 0
+}
+
+else if(dir==="left" && c<2){
+board[r][c] = board[r][c+1]
+board[r][c+1] = 0
+}
+
+else if(dir==="right" && c>0){
+board[r][c] = board[r][c-1]
+board[r][c-1] = 0
+}
 
 }
 
