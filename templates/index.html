@@ -30,12 +30,17 @@ background:#102844;
 
 .grid{
 display:grid;
-grid-template-columns:repeat(3,1fr);
-gap:20px;
+grid-template-columns:repeat(3,100px);
+grid-template-rows:repeat(3,100px);
+gap:10px;
+justify-content:center;
 margin:40px 0;
+position:relative;
 }
 
 .tile{
+position:absolute;
+width:100px;
 height:100px;
 display:flex;
 align-items:center;
@@ -44,7 +49,7 @@ font-size:28px;
 background:#123252;
 border-radius:12px;
 cursor:pointer;
-transition:transform 0.25s ease;
+transition:all 0.25s ease;
 }
 
 .tile:active{
@@ -108,7 +113,7 @@ cursor:pointer;
 <option value="medium">Medium</option>
 <option value="hard">Hard</option>
 </select>
-
+<button onclick="restart()">Restart</button>
 <button onclick="undoMove()">Undo</button>
 <button onclick="hintMove()">Hint</button>
 <button onclick="solve()">AI Solve</button>
@@ -143,25 +148,27 @@ shuffleBoard("medium")
 function render(){
 
 const grid=document.getElementById("grid")
+
 grid.innerHTML=""
 
 for(let i=0;i<3;i++){
 
 for(let j=0;j<3;j++){
 
+let value = board[i][j]
+
+if(value==0) continue
+
 const tile=document.createElement("div")
+
 tile.className="tile"
 
-if(board[i][j]==0){
+tile.innerText=value
 
-tile.classList.add("blank")
+tile.style.left = (j*110) + "px"
+tile.style.top  = (i*110) + "px"
 
-}else{
-
-tile.innerText=board[i][j]
-tile.onclick=()=>moveTile(i,j)
-
-}
+tile.onclick = () => moveTile(i,j)
 
 grid.appendChild(tile)
 
@@ -207,7 +214,23 @@ render()
 
 }
 
+function restart(){
 
+board = JSON.parse(JSON.stringify(initialBoard))
+
+moveHistory=[]
+
+moveCount=0
+seconds=0
+
+clearInterval(timerInterval)
+
+document.getElementById("moves").innerText=" 🎯 0"
+document.getElementById("timer").innerText="⏱ 0s"
+
+render()
+
+}
 function shuffleBoard(level){
 
 moveHistory=[]
@@ -307,16 +330,24 @@ document.getElementById("aiStatus").innerText="🤖 AI thinking..."
 let algorithm=document.getElementById("algorithm").value
 
 let res=await fetch("/solve",{
-
 method:"POST",
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({board:board,algorithm:algorithm})
-
+body:JSON.stringify({
+board:board,
+algorithm:algorithm
+})
 })
 
 let data=await res.json()
 
 document.getElementById("aiStatus").innerText=""
+
+if(!data.solution_path || data.solution_path.length==0){
+
+alert("No solution found")
+return
+
+}
 
 animateSolution(data.solution_path)
 
@@ -325,6 +356,8 @@ animateSolution(data.solution_path)
 
 function animateSolution(path){
 
+if(moveCount==0) startTimer()
+
 let i=0
 
 let interval=setInterval(()=>{
@@ -332,11 +365,19 @@ let interval=setInterval(()=>{
 if(i>=path.length){
 
 clearInterval(interval)
+
+document.getElementById("aiStatus").innerText=""
+
 return
 
 }
 
 applyMove(path[i])
+
+moveCount++
+
+document.getElementById("moves").innerText=" 🎯 "+moveCount
+
 render()
 
 i++
@@ -344,8 +385,6 @@ i++
 },300)
 
 }
-
-
 function applyMove(dir){
 
 dir=dir.toLowerCase()
