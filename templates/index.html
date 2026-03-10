@@ -1,21 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta charset="UTF-8">
 <title>AI Puzzle Lab</title>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
 <style>
-*{box-sizing:border-box;}
 
 body{
 margin:0;
 font-family:'Inter',sans-serif;
 background:linear-gradient(160deg,#071421,#0d243b 60%, #0a1b2e);
-color:#e8f6ff;
+color:white;
+text-align:center;
 }
 
 .container{
@@ -23,11 +24,8 @@ width:520px;
 max-width:94%;
 margin:80px auto;
 padding:40px;
-border-radius:24px;
-background:rgba(18,32,52,0.95);
-border:1px solid rgba(0,180,255,0.25);
-box-shadow:0 20px 60px rgba(0,0,0,0.6);
-text-align:center;
+border-radius:20px;
+background:#102844;
 }
 
 .grid{
@@ -39,14 +37,18 @@ margin:40px 0;
 
 .tile{
 height:100px;
-border-radius:16px;
 display:flex;
 align-items:center;
 justify-content:center;
 font-size:28px;
+background:#123252;
+border-radius:12px;
 cursor:pointer;
-background:linear-gradient(180deg,#123252,#102944);
-border:1px solid rgba(0,200,255,0.35);
+transition:transform 0.25s ease;
+}
+
+.tile:active{
+transform:scale(0.9);
 }
 
 .blank{visibility:hidden;}
@@ -54,75 +56,41 @@ border:1px solid rgba(0,200,255,0.35);
 .controls{
 display:flex;
 flex-wrap:wrap;
+gap:10px;
 justify-content:center;
-gap:12px;
 }
 
-button,select,input{
+button,select{
 padding:10px 20px;
 border-radius:20px;
 border:none;
 cursor:pointer;
 }
 
-.stats{
-display:flex;
-justify-content:space-between;
-}
-
-.credit{
-margin-top:20px;
-font-size:13px;
-opacity:0.7;
-}
-
-.modal{
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.6);
-display:none;
-align-items:center;
-justify-content:center;
-}
-
-.modal-box{
-background:#102844;
-padding:30px;
-border-radius:20px;
-}
 </style>
+
 </head>
 
 <body>
 
 <div id="startScreen" class="container">
-<h2>AI Puzzle Lab</h2>
-<button onclick="startSingle()">Start Game</button>
-<br><br>
-<button onclick="showMultiplayer()">Challenge Friend</button>
-</div>
-
-<div id="multiplayerPanel" class="container" style="display:none">
-<h2>Challenge a Friend</h2>
-<button onclick="createRoom()">Create Room</button>
-<br><br>
-<input id="roomCodeInput" placeholder="Enter Code">
-<button onclick="joinRoom()">Join Room</button>
-<br><br>
-<button onclick="goBack()">Back</button>
-</div>
-
-<div class="container" id="gameContainer" style="display:none;">
 
 <h2>AI Puzzle Lab</h2>
-<div id="aiStatus" style="font-size:13px;margin-bottom:10px;"></div>
 
-<div class="stats">
-<div id="timer">⏱ 0s</div>
-<div id="moves">🎯 0</div>
+<button onclick="startGame()">Start Game</button>
+
+</div>
+
+
+<div id="gameContainer" class="container" style="display:none">
+
+<h2>AI Puzzle Lab</h2>
+
+<div id="aiStatus"></div>
+
+<div>
+<span id="timer">⏱ 0s</span>
+<span id="moves"> 🎯 0</span>
 </div>
 
 <div class="grid" id="grid"></div>
@@ -130,335 +98,270 @@ border-radius:20px;
 <div class="controls">
 
 <select id="algorithm">
-<option value="astar">A* Search</option>
+<option value="astar">A*</option>
 <option value="bfs">BFS</option>
 </select>
 
 <select onchange="shuffleBoard(this.value)">
-<option disabled selected>Shuffle Level</option>
+<option disabled selected>Difficulty</option>
 <option value="easy">Easy</option>
 <option value="medium">Medium</option>
 <option value="hard">Hard</option>
 </select>
 
-<button onclick="restart()">Restart</button>
 <button onclick="undoMove()">Undo</button>
 <button onclick="hintMove()">Hint</button>
 <button onclick="solve()">AI Solve</button>
 
 </div>
 
-<div class="credit">
-A project by <b>Seerat Kaur Kohli</b>
-</div>
-
-</div>
-
-<div class="modal" id="modal">
-<div class="modal-box">
-<h3>Puzzle Completed</h3>
-<p id="modalText"></p>
-<button onclick="closeModal()">Close</button>
-</div>
 </div>
 
 <script>
 
-const socket = io();
+let board=[[1,2,3],[4,5,6],[7,8,0]]
 
-let board=[[1,2,3],[4,5,6],[7,8,0]];
-let initialBoard=JSON.parse(JSON.stringify(board));
-let moveHistory=[];
+let initialBoard
+let moveHistory=[]
 
-let seconds=0;
-let moveCount=0;
-let timerInterval;
-let gameActive=false;
+let seconds=0
+let moveCount=0
+let timerInterval
+let gameActive=false
 
-function startSingle(){
-document.getElementById("startScreen").style.display="none";
-document.getElementById("gameContainer").style.display="block";
-shuffleBoard("medium");
+
+function startGame(){
+
+document.getElementById("startScreen").style.display="none"
+document.getElementById("gameContainer").style.display="block"
+
+shuffleBoard("medium")
+
 }
 
-function showMultiplayer(){
-document.getElementById("startScreen").style.display="none";
-document.getElementById("multiplayerPanel").style.display="block";
-}
-
-function goBack(){
-document.getElementById("multiplayerPanel").style.display="none";
-document.getElementById("startScreen").style.display="block";
-}
-
-function createRoom(){
-socket.emit("create_room");
-}
-
-function joinRoom(){
-let code=document.getElementById("roomCodeInput").value;
-socket.emit("join_room",{code:code});
-}
-
-socket.on("room_created",(data)=>{
-alert("Share this code: "+data.code);
-});
-
-socket.on("start_game",()=>{
-document.getElementById("multiplayerPanel").style.display="none";
-document.getElementById("gameContainer").style.display="block";
-shuffleBoard("medium");
-});
 
 function render(){
 
-const grid=document.getElementById("grid");
-grid.innerHTML="";
+const grid=document.getElementById("grid")
+grid.innerHTML=""
 
 for(let i=0;i<3;i++){
+
 for(let j=0;j<3;j++){
 
-const tile=document.createElement("div");
-tile.className="tile";
+const tile=document.createElement("div")
+tile.className="tile"
 
-if(board[i][j]===0){
-tile.classList.add("blank");
+if(board[i][j]==0){
+
+tile.classList.add("blank")
+
 }else{
-tile.innerText=board[i][j];
-tile.onclick=()=>moveTile(i,j);
-}
 
-grid.appendChild(tile);
+tile.innerText=board[i][j]
+tile.onclick=()=>moveTile(i,j)
 
 }
+
+grid.appendChild(tile)
+
 }
 
 }
+
+}
+
+
+function findBlank(){
+
+for(let i=0;i<3;i++)
+for(let j=0;j<3;j++)
+if(board[i][j]==0)
+return{row:i,col:j}
+
+}
+
 
 function moveTile(r,c){
 
-if(!gameActive)return;
+if(!gameActive)return
 
-let blank=findBlank();
+let blank=findBlank()
 
-if(Math.abs(blank.row-r)+Math.abs(blank.col-c)===1){
+if(Math.abs(blank.row-r)+Math.abs(blank.col-c)==1){
 
-if(moveCount===0) startTimer();
+if(moveCount==0)startTimer()
 
-moveHistory.push(JSON.parse(JSON.stringify(board)));
+moveHistory.push(JSON.parse(JSON.stringify(board)))
 
-board[blank.row][blank.col]=board[r][c];
-board[r][c]=0;
+board[blank.row][blank.col]=board[r][c]
+board[r][c]=0
 
-moveCount++;
-document.getElementById("moves").innerText="🎯 "+moveCount;
+moveCount++
 
-render();
-checkWin();
+document.getElementById("moves").innerText=" 🎯 "+moveCount
 
-}
+render()
 
 }
 
-function findBlank(){
-for(let i=0;i<3;i++)
-for(let j=0;j<3;j++)
-if(board[i][j]===0)
-return{row:i,col:j};
 }
 
-function shuffleBoard(level="medium"){
 
-moveHistory=[];
+function shuffleBoard(level){
 
-let moves=40;
-if(level==="easy") moves=15;
-if(level==="hard") moves=80;
+moveHistory=[]
+
+let moves=40
+
+if(level=="easy")moves=15
+if(level=="hard")moves=80
 
 for(let i=0;i<moves;i++){
 
-let blank=findBlank();
+let blank=findBlank()
 
-let neighbors=[[blank.row-1,blank.col],
+let neighbors=[
+[blank.row-1,blank.col],
 [blank.row+1,blank.col],
 [blank.row,blank.col-1],
-[blank.row,blank.col+1]]
-.filter(([r,c])=>r>=0&&r<3&&c>=0&&c<3);
+[blank.row,blank.col+1]
+].filter(([r,c])=>r>=0&&r<3&&c>=0&&c<3)
 
-let rand=neighbors[Math.floor(Math.random()*neighbors.length)];
+let rand=neighbors[Math.floor(Math.random()*neighbors.length)]
 
-board[blank.row][blank.col]=board[rand[0]][rand[1]];
-board[rand[0]][rand[1]]=0;
+board[blank.row][blank.col]=board[rand[0]][rand[1]]
+board[rand[0]][rand[1]]=0
+
+}
+
+initialBoard=JSON.parse(JSON.stringify(board))
+
+moveCount=0
+seconds=0
+
+render()
+
+gameActive=true
 
 }
 
-initialBoard=JSON.parse(JSON.stringify(board));
-
-moveCount=0;
-seconds=0;
-
-document.getElementById("moves").innerText="🎯 0";
-document.getElementById("timer").innerText="⏱ 0s";
-
-render();
-gameActive=true;
-
-}
 
 function startTimer(){
 
-clearInterval(timerInterval);
-
 timerInterval=setInterval(()=>{
-seconds++;
-document.getElementById("timer").innerText="⏱ "+seconds+"s";
-},1000);
+
+seconds++
+document.getElementById("timer").innerText="⏱ "+seconds+"s"
+
+},1000)
 
 }
 
-function restart(){
-
-board=JSON.parse(JSON.stringify(initialBoard));
-
-moveHistory=[];
-moveCount=0;
-seconds=0;
-
-document.getElementById("moves").innerText="🎯 0";
-document.getElementById("timer").innerText="⏱ 0s";
-
-render();
-
-}
 
 function undoMove(){
-if(moveHistory.length===0)return;
-board=moveHistory.pop();
-moveCount--;
-render();
+
+if(moveHistory.length==0)return
+
+board=moveHistory.pop()
+
+moveCount--
+
+render()
+
 }
+
 
 async function hintMove(){
 
-document.getElementById("aiStatus").innerText="🤖 AI is thinking...";
+document.getElementById("aiStatus").innerText="🤖 AI thinking..."
 
-let algorithm=document.getElementById("algorithm").value;
+let algorithm=document.getElementById("algorithm").value
 
 let res=await fetch("/solve",{
+
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({board:board,algorithm:algorithm})
-});
 
-let data=await res.json();
+})
 
-document.getElementById("aiStatus").innerText="";
+let data=await res.json()
 
-if(!data.solution_path || data.solution_path.length===0) return;
+document.getElementById("aiStatus").innerText=""
 
-applyMove(data.solution_path[0]);
-render();
+if(data.solution_path.length>0){
+
+applyMove(data.solution_path[0])
+render()
 
 }
+
+}
+
 
 async function solve(){
 
-document.getElementById("aiStatus").innerText="🤖 AI is thinking...";
+document.getElementById("aiStatus").innerText="🤖 AI thinking..."
 
-let algorithm=document.getElementById("algorithm").value;
+let algorithm=document.getElementById("algorithm").value
 
 let res=await fetch("/solve",{
+
 method:"POST",
 headers:{"Content-Type":"application/json"},
 body:JSON.stringify({board:board,algorithm:algorithm})
-});
 
-let data=await res.json();
+})
 
-document.getElementById("aiStatus").innerText="";
+let data=await res.json()
 
-if(!data.solution_path) return;
+document.getElementById("aiStatus").innerText=""
 
-animateSolution(data.solution_path);
+animateSolution(data.solution_path)
 
 }
 
+
 function animateSolution(path){
 
-let i=0;
+let i=0
 
 let interval=setInterval(()=>{
 
 if(i>=path.length){
-clearInterval(interval);
-showModal("AI solved in "+path.length+" moves");
-return;
-}
 
-applyMove(path[i]);
-render();
-
-i++;
-
-},300);
+clearInterval(interval)
+return
 
 }
+
+applyMove(path[i])
+render()
+
+i++
+
+},300)
+
+}
+
 
 function applyMove(dir){
 
-dir = dir.toLowerCase();
+dir=dir.toLowerCase()
 
-let blank = findBlank();
-let r = blank.row;
-let c = blank.col;
+let blank=findBlank()
+let r=blank.row
+let c=blank.col
 
-/* reverse direction because solver returns tile move */
-
-if(dir === "up" && r < 2){
-board[r][c] = board[r+1][c];
-board[r+1][c] = 0;
-}
-
-else if(dir === "down" && r > 0){
-board[r][c] = board[r-1][c];
-board[r-1][c] = 0;
-}
-
-else if(dir === "left" && c < 2){
-board[r][c] = board[r][c+1];
-board[r][c+1] = 0;
-}
-
-else if(dir === "right" && c > 0){
-board[r][c] = board[r][c-1];
-board[r][c-1] = 0;
-}
+if(dir=="up"&&r<2){board[r][c]=board[r+1][c];board[r+1][c]=0}
+else if(dir=="down"&&r>0){board[r][c]=board[r-1][c];board[r-1][c]=0}
+else if(dir=="left"&&c<2){board[r][c]=board[r][c+1];board[r][c+1]=0}
+else if(dir=="right"&&c>0){board[r][c]=board[r][c-1];board[r][c-1]=0}
 
 }
 
-function checkWin(){
-
-if(board.flat().toString()==="1,2,3,4,5,6,7,8,0"){
-
-clearInterval(timerInterval);
-showModal("Solved in "+moveCount+" moves");
-
-gameActive=false;
-
-}
-
-}
-
-function showModal(text){
-document.getElementById("modalText").innerText=text;
-document.getElementById("modal").style.display="flex";
-}
-
-function closeModal(){
-document.getElementById("modal").style.display="none";
-}
-
-render();
+render()
 
 </script>
 
