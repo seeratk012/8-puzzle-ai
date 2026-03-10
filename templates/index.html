@@ -200,6 +200,13 @@ opacity:0.7;
 <div class="grid" id="grid"></div>
 
 <div class="controls">
+
+
+<button onclick="createRoom()">Challenge Friend</button>
+
+<input id="roomCodeInput" placeholder="Enter Code" style="padding:8px;border-radius:20px;border:none;text-align:center;width:120px">
+
+<button onclick="joinRoom()">Join</button>   
 <select id="algorithm">
 <option value="astar">A* Search</option>
 <option value="bfs">BFS</option>
@@ -231,8 +238,10 @@ opacity:0.7;
 A project by <b>Seerat Kaur Kohli</b>
 </div>
 
-
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 <script>
+const socket = io();
+let roomCode = null;    
 let moveHistory = [];   
 let board=[[1,2,3],[4,5,6],[7,8,0]];
 let initialBoard=JSON.parse(JSON.stringify(board));
@@ -241,7 +250,18 @@ let seconds=0;
 let moveCount=0;
 let gameActive=false;
 let timerStarted = false;
+function createRoom(){
+socket.emit("create_room");
+}
+function joinRoom(){
 
+let code=document.getElementById("roomCodeInput").value;
+
+socket.emit("join_room",{code:code});
+
+roomCode=code;
+
+}
 function toggleTheme(){
 document.body.classList.toggle("dark");
 document.body.classList.toggle("light");
@@ -389,10 +409,19 @@ document.getElementById("timer").innerText="⏱ "+seconds+"s";
 }
 
 function checkWin(){
+
 if(board.flat().toString()==="1,2,3,4,5,6,7,8,0"){
+
 clearInterval(timerInterval);
+
 showModal("Solved in "+moveCount+" moves");
+
+if(roomCode){
+socket.emit("player_won",{room:roomCode});
+}
+
 gameActive=false;
+
 }
 }
 
@@ -457,7 +486,25 @@ document.getElementById("modal").style.display="flex";
 function closeModal(){
 document.getElementById("modal").style.display="none";
 }
+socket.on("room_created", (data)=>{
 
+roomCode=data.code;
+
+alert("Room created! Share this code with your friend: "+roomCode);
+
+});
+socket.on("start_game", ()=>{
+
+alert("Both players joined! Game starting.");
+
+shuffleBoard();
+
+});
+socket.on("game_over",(data)=>{
+
+alert("Opponent finished the puzzle!");
+
+});
 render();
 gameActive = true;
 startTimer();;

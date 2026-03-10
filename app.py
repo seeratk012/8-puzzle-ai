@@ -1,8 +1,13 @@
 from flask import Flask, render_template, request, jsonify
+from flask_socketio import SocketIO, join_room, emit
+import random
 from collections import deque
 import heapq
 
 app = Flask(__name__)
+socketio = SocketIO(app)
+
+rooms = {}
 
 # -------------------------
 # 8-PUZZLE SOLVER (A* + BFS)
@@ -126,10 +131,37 @@ def solve():
         "moves": len(solution),
         "time": round(end - start, 3)
     })
+# -------------------------
+# MULTIPLAYER SOCKET EVENTS
+# -------------------------
 
+@socketio.on("create_room")
+def create_room():
+    code = str(random.randint(1000,9999))
+    rooms[code] = {"players":1}
+
+    join_room(code)
+
+    emit("room_created", {"code": code})
+
+
+@socketio.on("join_room")
+def join(data):
+
+    code = data["code"]
+
+    if code in rooms:
+
+        rooms[code]["players"] += 1
+        join_room(code)
+
+        if rooms[code]["players"] == 2:
+            emit("start_game", room=code)
+    else:
+        emit("invalid_room")
 # -------------------------
 # RUN APP
 # -------------------------
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    socketio.run(app, host="0.0.0.0", port=5000)
