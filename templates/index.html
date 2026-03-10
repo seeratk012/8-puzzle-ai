@@ -185,7 +185,33 @@ opacity:0.7;
 
 <body class="dark">
 
-<div class="container">
+<div id="startScreen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:20px">
+
+<h1>AI Puzzle Lab</h1>
+
+<button onclick="startSingle()">Start Game</button>
+
+<button onclick="showMultiplayer()">Challenge Friend</button>
+
+</div>
+<div id="multiplayerPanel" style="display:none;text-align:center;margin-top:80px">
+
+<h2>Challenge a Friend</h2>
+
+<button onclick="createRoom()">Create Room</button>
+
+<br><br>
+
+<input id="roomCodeInput" placeholder="Enter Code">
+
+<button onclick="joinRoom()">Join Room</button>
+
+<br><br>
+
+<button onclick="startSingle()">Back</button>
+
+</div>
+<div class="container" id="gameContainer" style="display:none;">
 <h2>AI Puzzle Lab</h2>
 <div id="aiStatus" class="ai-status"></div>
 
@@ -286,11 +312,17 @@ grid.appendChild(tile);
 }
 
 function moveTile(r,c){
+
 if(!gameActive)return;
 
 let blank=findBlank();
 
 if(Math.abs(blank.row-r)+Math.abs(blank.col-c)===1){
+
+if(!timerStarted){
+startTimer();
+timerStarted=true;
+}
 
 moveHistory.push(JSON.parse(JSON.stringify(board)));
 
@@ -300,13 +332,9 @@ board[r][c]=0;
 moveCount++;
 document.getElementById("moves").innerText="🎯 "+moveCount;
 
-if(!timerStarted){
-startTimer();
-timerStarted=true;
-}
-
 render();
 checkWin();
+
 }
 }
 function undoMove(){
@@ -360,6 +388,8 @@ if(diff==="hard") moves=80;
 gameActive=true;
 moveHistory=[];
 timerStarted=false;
+seconds=0;
+document.getElementById("timer").innerText="⏱ 0s";
 clearInterval(timerInterval);
 seconds=0;
 document.getElementById("timer").innerText="⏱ 0s";
@@ -424,7 +454,22 @@ gameActive=false;
 
 }
 }
+function startSingle(){
 
+document.getElementById("startScreen").style.display="none";
+document.getElementById("gameContainer").style.display="block";
+
+shuffleBoard();
+gameActive=true;
+
+}
+
+function showMultiplayer(){
+
+document.getElementById("startScreen").style.display="none";
+document.getElementById("multiplayerPanel").style.display="block";
+
+}
 async function solve(){
 
 document.getElementById("aiStatus").innerText="🤖 AI is thinking...";
