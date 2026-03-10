@@ -445,30 +445,33 @@ render();
 
 async function hintMove(){
 
+document.getElementById("aiStatus").innerText="🤖 AI is thinking...";
+
 let algorithm=document.getElementById("algorithm").value;
 
-let res=await fetch("/solve",{
-
+let res = await fetch("/solve",{
 method:"POST",
-
-headers:{"Content-Type":"application/json"},
-
+headers:{
+"Content-Type":"application/json"
+},
 body:JSON.stringify({
 board:board,
 algorithm:algorithm
 })
-
 });
 
-let data=await res.json();
+let data = await res.json();
 
-if(data.solution_path.length>0){
+document.getElementById("aiStatus").innerText="";
+
+if(!data.solution_path || data.solution_path.length===0){
+alert("No solution found");
+return;
+}
 
 applyMove(data.solution_path[0]);
 
 render();
-
-}
 
 }
 
@@ -478,28 +481,27 @@ async function solve(){
 
 document.getElementById("aiStatus").innerText="🤖 AI is thinking...";
 
-await new Promise(resolve => setTimeout(resolve, 50));
-
 let algorithm=document.getElementById("algorithm").value;
 
-let res=await fetch("/solve",{
-
+let res = await fetch("/solve",{
 method:"POST",
-
-headers:{"Content-Type":"application/json"},
-
+headers:{
+"Content-Type":"application/json"
+},
 body:JSON.stringify({
 board:board,
 algorithm:algorithm
 })
-
 });
 
-let data=await res.json();
+let data = await res.json();
 
 document.getElementById("aiStatus").innerText="";
 
-if(!data.solution_path)return;
+if(!data.solution_path){
+alert("AI could not solve");
+return;
+}
 
 animateSolution(data.solution_path);
 
