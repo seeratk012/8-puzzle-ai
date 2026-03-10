@@ -1,141 +1,86 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <meta charset="UTF-8">
 <title>AI Puzzle Lab</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
 <style>
+
 *{box-sizing:border-box;}
 
 body{
 margin:0;
 font-family:'Inter',sans-serif;
-transition:0.3s;
-}
-
-body.dark{
 background:linear-gradient(160deg,#071421,#0d243b 60%, #0a1b2e);
 color:#e8f6ff;
 }
 
-body.light{
-background:linear-gradient(160deg,#eef3f9,#dbe8f5);
-color:#102a43;
-}
+/* container */
 
 .container{
 width:520px;
 max-width:94%;
-margin:90px auto;
-padding:50px;
+margin:80px auto;
+padding:40px;
 border-radius:24px;
-transition:0.3s;
-}
-
-body.dark .container{
 background:rgba(18,32,52,0.95);
 border:1px solid rgba(0,180,255,0.25);
 box-shadow:0 20px 60px rgba(0,0,0,0.6);
-}
-
-body.light .container{
-background:#ffffff;
-border:1px solid #d0d9e4;
-box-shadow:0 20px 60px rgba(0,0,0,0.1);
-}
-
-h2{
 text-align:center;
-margin-bottom:40px;
-font-weight:600;
-}
-
-.stats{
-display:flex;
-justify-content:space-between;
-font-size:14px;
-margin-bottom:35px;
 }
 
 .grid{
 display:grid;
 grid-template-columns:repeat(3,1fr);
-gap:22px;
-margin-bottom:45px;
+gap:20px;
+margin:40px 0;
 }
 
-
 .tile{
-height:105px;
-border-radius:18px;
+height:100px;
+border-radius:16px;
 display:flex;
 align-items:center;
 justify-content:center;
 font-size:28px;
-font-weight:500;
 cursor:pointer;
-transition:all 0.25s ease;
-transform:scale(1);
-}
-
-.tile:active{
-transform:scale(0.92);
-}
-
-body.dark .tile{
 background:linear-gradient(180deg,#123252,#102944);
 border:1px solid rgba(0,200,255,0.35);
-color:#dff6ff;
 }
 
-body.dark .tile:hover{
-border-color:rgba(0,255,255,0.7);
-box-shadow:0 10px 20px rgba(0,200,255,0.15);
+.blank{
+visibility:hidden;
 }
-
-body.light .tile{
-background:#f0f4f9;
-border:1px solid #cbd6e2;
-color:#102a43;
-}
-
-body.light .tile:hover{
-background:#e2ebf5;
-}
-
-.blank{visibility:hidden;}
 
 .controls{
 display:flex;
 flex-wrap:wrap;
 justify-content:center;
-gap:14px;
+gap:12px;
 }
 
-button,select{
-padding:10px 22px;
-border-radius:28px;
-font-weight:500;
+button,select,input{
+padding:10px 20px;
+border-radius:20px;
+border:none;
 cursor:pointer;
-transition:0.2s ease;
 }
 
-body.dark button, body.dark select{
-background:#123252;
-border:1px solid rgba(0,200,255,0.35);
-color:#9feaff;
+.stats{
+display:flex;
+justify-content:space-between;
 }
 
-body.light button, body.light select{
-background:#e7edf4;
-border:1px solid #cbd6e2;
-color:#102a43;
-}
-
-button:hover{
-opacity:0.85;
+.credit{
+margin-top:20px;
+font-size:13px;
+opacity:0.7;
 }
 
 .modal{
@@ -144,57 +89,40 @@ top:0;
 left:0;
 width:100%;
 height:100%;
-background:rgba(0,0,0,0.5);
+background:rgba(0,0,0,0.6);
 display:none;
 align-items:center;
 justify-content:center;
 }
 
 .modal-box{
-padding:35px;
-border-radius:20px;
-width:320px;
-text-align:center;
-}
-
-body.dark .modal-box{
 background:#102844;
-border:1px solid rgba(0,200,255,0.35);
+padding:30px;
+border-radius:20px;
 }
 
-body.light .modal-box{
-background:white;
-border:1px solid #d0d9e4;
-}
-.credit{
-text-align:center;
-margin-top:25px;
-font-size:13px;
-opacity:0.7;
-letter-spacing:0.5px;
-}
-.ai-status{
-text-align:center;
-font-size:13px;
-margin-top:-25px;
-margin-bottom:20px;
-opacity:0.7;
-}
 </style>
 </head>
 
-<body class="dark">
+<body>
 
-<div id="startScreen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:20px">
+<!-- START SCREEN -->
 
-<h1>AI Puzzle Lab</h1>
+<div id="startScreen" class="container">
+
+<h2>AI Puzzle Lab</h2>
 
 <button onclick="startSingle()">Start Game</button>
+
+<br><br>
 
 <button onclick="showMultiplayer()">Challenge Friend</button>
 
 </div>
-<div id="multiplayerPanel" style="display:none;text-align:center;margin-top:80px">
+
+<!-- MULTIPLAYER PANEL -->
+
+<div id="multiplayerPanel" class="container" style="display:none">
 
 <h2>Challenge a Friend</h2>
 
@@ -208,259 +136,90 @@ opacity:0.7;
 
 <br><br>
 
-<button onclick="startSingle()">Back</button>
+<button onclick="goBack()">Back</button>
 
 </div>
+
+<!-- GAME SCREEN -->
+
 <div class="container" id="gameContainer" style="display:none;">
+
 <h2>AI Puzzle Lab</h2>
-<div id="aiStatus" class="ai-status"></div>
 
 <div class="stats">
 <div id="timer">⏱ 0s</div>
 <div id="moves">🎯 0</div>
-<div>
-<button onclick="toggleTheme()">🌙 / ☀️</button>
-</div>
 </div>
 
 <div class="grid" id="grid"></div>
 
 <div class="controls">
 
-
-<button onclick="createRoom()">Challenge Friend</button>
-
-<input id="roomCodeInput" placeholder="Enter Code" style="padding:8px;border-radius:20px;border:none;text-align:center;width:120px">
-
-<button onclick="joinRoom()">Join</button>   
-<select id="algorithm">
-<option value="astar">A* Search</option>
-<option value="bfs">BFS</option>
-</select>
-
-<select id="difficulty">
+<select onchange="shuffleBoard(this.value)">
+<option disabled selected>Shuffle Level</option>
 <option value="easy">Easy</option>
 <option value="medium">Medium</option>
 <option value="hard">Hard</option>
 </select>
 
-<button onclick="shuffleBoard()">Shuffle</button>
 <button onclick="restart()">Restart</button>
-<button onclick="undoMove()">Undo</button>
-<button onclick="hintMove()">Hint</button>
-<button onclick="solve()">AI Solve</button>
-</div>
-</div>
 
-<div class="modal" id="modal">
-<div class="modal-box">
-<h3>🎉 Puzzle Completed</h3>
-<p id="modalText"></p>
-<button onclick="closeModal()">Close</button>
-</div>
+<button onclick="undoMove()">Undo</button>
+
+<button onclick="hintMove()">Hint</button>
+
+<button onclick="solve()">AI Solve</button>
+
 </div>
 
 <div class="credit">
 A project by <b>Seerat Kaur Kohli</b>
 </div>
 
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+</div>
+
+<!-- MODAL -->
+
+<div class="modal" id="modal">
+
+<div class="modal-box">
+
+<h3>Puzzle Completed</h3>
+
+<p id="modalText"></p>
+
+<button onclick="closeModal()">Close</button>
+
+</div>
+
+</div>
+
 <script>
+
 const socket = io();
-let roomCode = null;    
-let moveHistory = [];   
+
+let roomCode=null;
+
 let board=[[1,2,3],[4,5,6],[7,8,0]];
+
 let initialBoard=JSON.parse(JSON.stringify(board));
-let timerInterval;
+
+let moveHistory=[];
+
 let seconds=0;
 let moveCount=0;
+
+let timerInterval;
 let gameActive=false;
-let timerStarted = false;
-function createRoom(){
-socket.emit("create_room");
-}
-function joinRoom(){
 
-let code=document.getElementById("roomCodeInput").value;
+/* START SCREENS */
 
-socket.emit("join_room",{code:code});
-
-roomCode=code;
-
-}
-function toggleTheme(){
-document.body.classList.toggle("dark");
-document.body.classList.toggle("light");
-}
-
-function render(){
-const grid=document.getElementById("grid");
-grid.innerHTML="";
-for(let i=0;i<3;i++){
-for(let j=0;j<3;j++){
-const tile=document.createElement("div");
-tile.className="tile";
-if(board[i][j]===0){
-tile.classList.add("blank");
-}else{
-tile.innerText=board[i][j];
-tile.onclick=()=>moveTile(i,j);
-}
-grid.appendChild(tile);
-}
-}
-}
-
-function moveTile(r,c){
-
-if(!gameActive)return;
-
-let blank=findBlank();
-
-if(Math.abs(blank.row-r)+Math.abs(blank.col-c)===1){
-
-if(!timerStarted){
-startTimer();
-timerStarted=true;
-}
-
-moveHistory.push(JSON.parse(JSON.stringify(board)));
-
-board[blank.row][blank.col]=board[r][c];
-board[r][c]=0;
-
-moveCount++;
-document.getElementById("moves").innerText="🎯 "+moveCount;
-
-render();
-checkWin();
-
-}
-}
-function undoMove(){
-
-if(moveHistory.length===0) return;
-
-board = moveHistory.pop();
-
-moveCount--;
-if(moveCount < 0) moveCount = 0;
-
-document.getElementById("moves").innerText="🎯 "+moveCount;
-
-render();
-
-}
-async function hintMove(){
-
-let algorithm=document.getElementById("algorithm").value;
-
-let res=await fetch("/solve",{
-method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({board:board,algorithm:algorithm})
-});
-
-let data=await res.json();
-
-if(data.solution_path.length>0){
-applyMove(data.solution_path[0]);
-render();
-}
-
-}
-function findBlank(){
-for(let i=0;i<3;i++)
-for(let j=0;j<3;j++)
-if(board[i][j]===0)return{row:i,col:j};
-}
-
-function shuffleBoard(){
-
-let diff=document.getElementById("difficulty").value;
-
-let moves=20;
-
-if(diff==="easy") moves=15;
-if(diff==="medium") moves=40;
-if(diff==="hard") moves=80;
-
-gameActive=true;
-moveHistory=[];
-timerStarted=false;
-seconds=0;
-document.getElementById("timer").innerText="⏱ 0s";
-clearInterval(timerInterval);
-seconds=0;
-document.getElementById("timer").innerText="⏱ 0s";
-
-for(let i=0;i<moves;i++){
-
-let blank=findBlank();
-
-let neighbors=[
-[blank.row-1,blank.col],
-[blank.row+1,blank.col],
-[blank.row,blank.col-1],
-[blank.row,blank.col+1]
-].filter(([r,c])=>r>=0&&r<3&&c>=0&&c<3);
-
-let rand=neighbors[Math.floor(Math.random()*neighbors.length)];
-
-board[blank.row][blank.col]=board[rand[0]][rand[1]];
-board[rand[0]][rand[1]]=0;
-}
-
-initialBoard=JSON.parse(JSON.stringify(board));
-moveCount=0;
-document.getElementById("moves").innerText="🎯 0";
-
-render();
-}
-
-function restart(){
-board=JSON.parse(JSON.stringify(initialBoard));
-moveHistory=[];
-moveCount=0;
-seconds=0;
-document.getElementById("moves").innerText="🎯 0";
-document.getElementById("timer").innerText="⏱ 0s";
-startTimer();
-render();
-gameActive=true;
-}
-
-function startTimer(){
-clearInterval(timerInterval);
-timerInterval=setInterval(()=>{
-seconds++;
-document.getElementById("timer").innerText="⏱ "+seconds+"s";
-},1000);
-}
-
-function checkWin(){
-
-if(board.flat().toString()==="1,2,3,4,5,6,7,8,0"){
-
-clearInterval(timerInterval);
-
-showModal("Solved in "+moveCount+" moves");
-
-if(roomCode){
-socket.emit("player_won",{room:roomCode});
-}
-
-gameActive=false;
-
-}
-}
 function startSingle(){
 
 document.getElementById("startScreen").style.display="none";
 document.getElementById("gameContainer").style.display="block";
 
-shuffleBoard();
-gameActive=true;
+shuffleBoard("medium");
 
 }
 
@@ -470,89 +229,335 @@ document.getElementById("startScreen").style.display="none";
 document.getElementById("multiplayerPanel").style.display="block";
 
 }
-async function solve(){
 
-document.getElementById("aiStatus").innerText="🤖 AI is thinking...";
+function goBack(){
 
-await new Promise(resolve => setTimeout(resolve, 50));
+document.getElementById("multiplayerPanel").style.display="none";
+document.getElementById("startScreen").style.display="block";
 
-gameActive=false;
+}
 
-let algorithm=document.getElementById("algorithm").value;
+/* MULTIPLAYER */
+
+function createRoom(){
+
+socket.emit("create_room");
+
+}
+
+function joinRoom(){
+
+let code=document.getElementById("roomCodeInput").value;
+
+socket.emit("join_room",{code:code});
+
+}
+
+socket.on("room_created",(data)=>{
+
+roomCode=data.code;
+
+alert("Share this code: "+data.code);
+
+});
+
+socket.on("start_game",()=>{
+
+document.getElementById("multiplayerPanel").style.display="none";
+document.getElementById("gameContainer").style.display="block";
+
+shuffleBoard("medium");
+
+});
+
+/* RENDER BOARD */
+
+function render(){
+
+const grid=document.getElementById("grid");
+
+grid.innerHTML="";
+
+for(let i=0;i<3;i++){
+
+for(let j=0;j<3;j++){
+
+const tile=document.createElement("div");
+
+tile.className="tile";
+
+if(board[i][j]===0){
+
+tile.classList.add("blank");
+
+}else{
+
+tile.innerText=board[i][j];
+
+tile.onclick=()=>moveTile(i,j);
+
+}
+
+grid.appendChild(tile);
+
+}
+
+}
+
+}
+
+/* MOVE TILE */
+
+function moveTile(r,c){
+
+if(!gameActive)return;
+
+let blank=findBlank();
+
+if(Math.abs(blank.row-r)+Math.abs(blank.col-c)===1){
+
+if(moveCount===0){
+startTimer();
+}
+
+moveHistory.push(JSON.parse(JSON.stringify(board)));
+
+board[blank.row][blank.col]=board[r][c];
+board[r][c]=0;
+
+moveCount++;
+
+document.getElementById("moves").innerText="🎯 "+moveCount;
+
+render();
+
+checkWin();
+
+}
+
+}
+
+function findBlank(){
+
+for(let i=0;i<3;i++)
+for(let j=0;j<3;j++)
+if(board[i][j]===0)
+return{row:i,col:j};
+
+}
+
+/* SHUFFLE */
+
+function shuffleBoard(level="medium"){
+
+moveHistory=[];
+
+let moves=40;
+
+if(level==="easy") moves=15;
+if(level==="medium") moves=40;
+if(level==="hard") moves=80;
+
+for(let i=0;i<moves;i++){
+
+let blank=findBlank();
+
+let neighbors=[[blank.row-1,blank.col],
+[blank.row+1,blank.col],
+[blank.row,blank.col-1],
+[blank.row,blank.col+1]]
+.filter(([r,c])=>r>=0&&r<3&&c>=0&&c<3);
+
+let rand=neighbors[Math.floor(Math.random()*neighbors.length)];
+
+board[blank.row][blank.col]=board[rand[0]][rand[1]];
+board[rand[0]][rand[1]]=0;
+
+}
+
+initialBoard=JSON.parse(JSON.stringify(board));
+
+moveCount=0;
+seconds=0;
+
+document.getElementById("moves").innerText="🎯 0";
+document.getElementById("timer").innerText="⏱ 0s";
+
+render();
+
+gameActive=true;
+
+}
+
+/* TIMER */
+
+function startTimer(){
+
+clearInterval(timerInterval);
+
+timerInterval=setInterval(()=>{
+
+seconds++;
+
+document.getElementById("timer").innerText="⏱ "+seconds+"s";
+
+},1000);
+
+}
+
+/* RESTART */
+
+function restart(){
+
+board=JSON.parse(JSON.stringify(initialBoard));
+
+moveHistory=[];
+
+moveCount=0;
+seconds=0;
+
+document.getElementById("moves").innerText="🎯 0";
+document.getElementById("timer").innerText="⏱ 0s";
+
+render();
+
+}
+
+/* UNDO */
+
+function undoMove(){
+
+if(moveHistory.length===0)return;
+
+board=moveHistory.pop();
+
+moveCount--;
+
+render();
+
+}
+
+/* HINT */
+
+async function hintMove(){
 
 let res=await fetch("/solve",{
+
 method:"POST",
+
 headers:{"Content-Type":"application/json"},
-body:JSON.stringify({board:board,algorithm:algorithm})
+
+body:JSON.stringify({board:board,algorithm:"astar"})
+
 });
 
 let data=await res.json();
 
-document.getElementById("aiStatus").innerText="";
+if(data.solution_path.length>0){
 
-if(!data.solution_path)return;
+applyMove(data.solution_path[0]);
 
-// START TIMER WHEN AI MAKES FIRST MOVE
-if(!timerStarted){
-startTimer();
-timerStarted=true;
+render();
+
 }
+
+}
+
+/* AI SOLVE */
+
+async function solve(){
+
+let res=await fetch("/solve",{
+
+method:"POST",
+
+headers:{"Content-Type":"application/json"},
+
+body:JSON.stringify({board:board,algorithm:"astar"})
+
+});
+
+let data=await res.json();
 
 animateSolution(data.solution_path);
+
 }
+
 function animateSolution(path){
+
 let i=0;
+
 let interval=setInterval(()=>{
+
 if(i>=path.length){
+
 clearInterval(interval);
+
 showModal("AI solved in "+path.length+" moves");
+
 return;
+
 }
+
 applyMove(path[i]);
+
 render();
+
 i++;
+
 },300);
+
 }
 
 function applyMove(dir){
+
 dir=dir.toLowerCase();
+
 let blank=findBlank();
+
 let r=blank.row,c=blank.col;
+
 if(dir==="up"&&r>0){board[r][c]=board[r-1][c];board[r-1][c]=0;}
 else if(dir==="down"&&r<2){board[r][c]=board[r+1][c];board[r+1][c]=0;}
 else if(dir==="left"&&c>0){board[r][c]=board[r][c-1];board[r][c-1]=0;}
 else if(dir==="right"&&c<2){board[r][c]=board[r][c+1];board[r][c+1]=0;}
+
 }
+
+/* WIN */
+
+function checkWin(){
+
+if(board.flat().toString()==="1,2,3,4,5,6,7,8,0"){
+
+clearInterval(timerInterval);
+
+showModal("Solved in "+moveCount+" moves");
+
+gameActive=false;
+
+}
+
+}
+
+/* MODAL */
 
 function showModal(text){
+
 document.getElementById("modalText").innerText=text;
+
 document.getElementById("modal").style.display="flex";
+
 }
+
 function closeModal(){
+
 document.getElementById("modal").style.display="none";
+
 }
-socket.on("room_created", (data)=>{
 
-roomCode=data.code;
-
-alert("Room created! Share this code with your friend: "+roomCode);
-
-});
-socket.on("start_game", ()=>{
-
-alert("Both players joined! Game starting.");
-
-shuffleBoard();
-
-});
-socket.on("game_over",(data)=>{
-
-alert("Opponent finished the puzzle!");
-
-});
 render();
-gameActive = true;
-startTimer();;
+
 </script>
 
 </body>
